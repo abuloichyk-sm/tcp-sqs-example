@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -19,7 +18,12 @@ func main() {
 			defer wg.Done()
 			conn, _ := net.Dial("tcp", "127.0.0.1:8081")
 
-			req := fmt.Sprintf("%d %d", i, time.Now().Unix())
+			//request just number
+			req := fmt.Sprintf("%d", i)
+
+			//or request with time to pass duplication check in queue
+			//req := fmt.Sprintf("%d %d", i, time.Now().Unix())
+
 			// Отправляем в socket
 			fmt.Fprint(conn, req)
 			fmt.Printf("sent %d\n", i)

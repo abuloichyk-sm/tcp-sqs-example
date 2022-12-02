@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -13,8 +15,8 @@ import (
 )
 
 type EngineClient struct {
-	qcEngineIn  SqsQueueClient
-	qcEngineOut SqsQueueClient
+	qcEngineIn  queueclient.SqsQueueClient
+	qcEngineOut queueclient.SqsQueueClient
 	chans       *sync.Map
 	toProcess   chan (string)
 }
@@ -25,14 +27,14 @@ func (ec *EngineClient) Init(chans *sync.Map, toProcess chan (string)) {
 		Region:      aws.String("us-east-1")},
 	))
 
-	ec.qcEngineIn = SqsQueueClient{}
+	ec.qcEngineIn = queueclient.SqsQueueClient{}
 	err := ec.qcEngineIn.Init(sess, aws.String("AlexTestQueueEngineIn.fifo"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Engine in queue client created")
 
-	ec.qcEngineOut = SqsQueueClient{}
+	ec.qcEngineOut = queueclient.SqsQueueClient{}
 	err = ec.qcEngineOut.Init(sess, aws.String("AlexTestQueueEngineOut.fifo"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
@@ -48,7 +50,8 @@ func (ec *EngineClient) Run() {
 	go func() {
 		for {
 			m := <-ec.toProcess
-			ec.qcEngineIn.SendMsg(&m)
+			deduplicaionId := fmt.Sprintf("%s_%d", m, time.Now().Unix())
+			ec.qcEngineIn.SendMsg(&m, &deduplicaionId)
 			log.Printf("Sent to engine '%s'\n", m)
 		}
 	}()

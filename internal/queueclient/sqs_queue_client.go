@@ -1,4 +1,4 @@
-package main
+package queueclient
 
 import (
 	"log"
@@ -40,11 +40,14 @@ func (qc *SqsQueueClient) getQueueURL(sess *session.Session, queue *string) (*st
 	return urlResult.QueueUrl, nil
 }
 
-func (qc *SqsQueueClient) SendMsg(body *string) error {
-	_, err := qc.svc.SendMessage(&sqs.SendMessageInput{
-		MessageBody:    body,
-		MessageGroupId: aws.String("EngineQueue"), //Messages in one group will be ordered as FIFO. Only one group this case
-		QueueUrl:       qc.QueueUrl,
+func (qc *SqsQueueClient) SendMsg(body *string, messageDeduplicationId *string) error {
+	svc := sqs.New(qc.Session)
+
+	_, err := svc.SendMessage(&sqs.SendMessageInput{
+		MessageBody:            body,
+		MessageGroupId:         aws.String("EngineQueue"), //Messages in one group will be ordered as FIFO. Only one group this case
+		QueueUrl:               qc.QueueUrl,
+		MessageDeduplicationId: messageDeduplicationId,
 	})
 	if err != nil {
 		log.Printf("Error on message sent body'%s' %d err %s", *body, len(*body), err)
