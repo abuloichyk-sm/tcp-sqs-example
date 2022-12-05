@@ -50,7 +50,7 @@ func main() {
 
 func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueueClient, message *sqs.Message) {
 
-	engineRes := EngineResponse{Id: *message.Body, Message: fmt.Sprintf("%s processed", *message.Body)}
+	engineRes := queueclient.EngineResponse{Id: *message.Body, Message: fmt.Sprintf("%s processed", *message.Body)}
 	log.Println(engineRes.Message)
 
 	outMessageBytes, _ := json.Marshal(engineRes)

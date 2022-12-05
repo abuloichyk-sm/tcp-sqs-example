@@ -77,7 +77,7 @@ func (ec *EngineClient) Run() {
 func (ec *EngineClient) processMessageFromEngine(mo *sqs.Message) {
 	log.Printf("Received from engine '%s'\n", *mo.Body)
 
-	engineRes := &EngineResponse{}
+	engineRes := &queueclient.EngineResponse{}
 	err := json.Unmarshal([]byte(*mo.Body), engineRes)
 	if err != nil {
 		log.Printf("Error unmarshal '%s'\n", *mo.Body)
