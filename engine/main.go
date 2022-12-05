@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -50,13 +51,29 @@ func main() {
 
 func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueueClient, message *sqs.Message) {
 
-	engineRes := queueclient.EngineResponse{Id: *message.Body, Message: fmt.Sprintf("%s processed", *message.Body)}
-	log.Println(engineRes.Message)
+	req := &queueclient.EngineRequest{}
+	err := json.Unmarshal([]byte(*message.Body), req)
+	if err != nil {
+		log.Printf("Error to json.Unmarshal '%s'", *message.Body)
+		return
+	}
+	transaction, err := base64.StdEncoding.DecodeString(*req.B64Message)
+	if err != nil {
+		log.Printf("Error to base64 decode '%s'", req.B64Message)
+		return
+	}
+
+	//processing
+	res := fmt.Sprintf("%s processed", transaction)
+	log.Printf("%s processed", transaction)
+
+	b64res := base64.StdEncoding.EncodeToString([]byte(res))
+	engineRes := queueclient.EngineResponse{Id: req.Id, B64Message: &b64res}
 
 	outMessageBytes, _ := json.Marshal(engineRes)
 	outMessage := string(outMessageBytes)
-	deduplicaionId := fmt.Sprintf("%s_%d", *message.Body, time.Now().Unix())
-	err := qcOut.SendMsg(&outMessage, &deduplicaionId)
+
+	err = qcOut.SendMsg(&outMessage, req.Id)
 	if err == nil {
 		qcIn.DeleteMessage(message.ReceiptHandle)
 	}

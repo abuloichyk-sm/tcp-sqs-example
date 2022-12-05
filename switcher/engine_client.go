@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
@@ -14,14 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
+type HandleEngineResponseFunc func(res *queueclient.EngineResponse)
+
 type EngineClient struct {
-	qcEngineIn  queueclient.SqsQueueClient
-	qcEngineOut queueclient.SqsQueueClient
-	chans       *sync.Map
-	toProcess   chan (string)
+	qcEngineIn           queueclient.SqsQueueClient
+	qcEngineOut          queueclient.SqsQueueClient
+	handleEngineResponse HandleEngineResponseFunc
 }
 
-func (ec *EngineClient) Init(chans *sync.Map, toProcess chan (string)) {
+func (ec *EngineClient) Init(handleEngineResponse HandleEngineResponseFunc) {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Credentials: credentials.NewSharedCredentials("", ""),
 		Region:      aws.String("us-east-1")},
@@ -41,21 +40,10 @@ func (ec *EngineClient) Init(chans *sync.Map, toProcess chan (string)) {
 	}
 	log.Println("Engine out queue client created")
 
-	ec.chans = chans
-	ec.toProcess = toProcess
+	ec.handleEngineResponse = handleEngineResponse
 }
 
 func (ec *EngineClient) Run() {
-	//send messages to engine
-	go func() {
-		for {
-			m := <-ec.toProcess
-			deduplicaionId := fmt.Sprintf("%s_%d", m, time.Now().Unix())
-			ec.qcEngineIn.SendMsg(&m, &deduplicaionId)
-			log.Printf("Sent to engine '%s'\n", m)
-		}
-	}()
-
 	//read answers from engine
 	go func() {
 		t := time.NewTicker(100 * time.Millisecond)
@@ -76,6 +64,7 @@ func (ec *EngineClient) Run() {
 
 func (ec *EngineClient) processMessageFromEngine(mo *sqs.Message) {
 	log.Printf("Received from engine '%s'\n", *mo.Body)
+	ec.qcEngineOut.DeleteMessage(mo.ReceiptHandle)
 
 	engineRes := &queueclient.EngineResponse{}
 	err := json.Unmarshal([]byte(*mo.Body), engineRes)
@@ -85,14 +74,13 @@ func (ec *EngineClient) processMessageFromEngine(mo *sqs.Message) {
 		return
 	}
 
-	chanForRes, ok := ec.chans.Load(engineRes.Id)
-	if !ok {
-		log.Printf("Chan for key %s not found\n", engineRes.Id)
-		ec.qcEngineOut.DeleteMessage(mo.ReceiptHandle)
-		return
-	}
-	c := chanForRes.(chan (string))
-	c <- engineRes.Message
-
 	ec.qcEngineOut.DeleteMessage(mo.ReceiptHandle)
+	ec.handleEngineResponse(engineRes)
+}
+
+func (ec *EngineClient) SendMessage(er *queueclient.EngineRequest) {
+	bytes, _ := json.Marshal(er)
+	s := string(bytes)
+	ec.qcEngineIn.SendMsg(&s, er.Id)
+	log.Printf("Sent to engine '%s'\n", s)
 }

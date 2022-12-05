@@ -1,18 +1,16 @@
 package main
 
-import (
-	"sync"
-)
-
 func main() {
-	chans := &sync.Map{}
-	toProcess := make(chan (string), 1)
+	sw := Switcher{}
 
 	ec := &EngineClient{}
-	ec.Init(chans, toProcess)
+	ec.Init(sw.HandleEngineResponse)
 	ec.Run()
 
 	ts := &TcpServer{}
-	ts.Init(chans, toProcess)
+	ts.Init(sw.HandleTcpRequest)
+
+	sw.Init(ec.SendMessage, ts.WriteResponse)
+
 	ts.Run()
 }
