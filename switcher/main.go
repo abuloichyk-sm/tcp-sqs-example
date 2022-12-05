@@ -10,7 +10,7 @@ func main() {
 	ts := &TcpServer{}
 	ts.Init(sw.HandleTcpRequest)
 
-	sw.Init(ec.SendMessage, ts.WriteResponse)
+	sw.Init(ts, ec)
 
 	ts.Run()
 }

@@ -21,15 +21,14 @@ type SwitcherRequest struct {
 }
 
 type Switcher struct {
-	Requests          sync.Map
-	sendMessageFunc   SendMessageToQueueFunc
-	sendToTcpConnFunc SendToTcpConnFunc
-	ts                *TcpServer
+	Requests sync.Map
+	ts       *TcpServer
+	ec       *EngineClient
 }
 
-func (sw *Switcher) Init(sendMessageFunc SendMessageToQueueFunc, sendToTcpConnFunc SendToTcpConnFunc) {
-	sw.sendMessageFunc = sendMessageFunc
-	sw.sendToTcpConnFunc = sendToTcpConnFunc
+func (sw *Switcher) Init(ts *TcpServer, ec *EngineClient) {
+	sw.ts = ts
+	sw.ec = ec
 }
 
 func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
@@ -48,7 +47,7 @@ func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
 		Id:         sr.Id,
 		B64Message: &b64Message,
 	}
-	sw.sendMessageFunc(er)
+	sw.ec.SendMessage(er)
 }
 
 func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
@@ -67,5 +66,5 @@ func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
 
 	sr, _ := srAny.(SwitcherRequest)
 
-	sw.sendToTcpConnFunc(&message, sr.Conn)
+	sw.ts.WriteResponse(&message, sr.Conn)
 }
