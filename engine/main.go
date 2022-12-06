@@ -39,10 +39,14 @@ func main() {
 	for {
 		<-t.C
 		out, _ := qcIn.ReceiveMessages()
+
 		if len(out.Messages) == 0 {
-			log.Println("No messages")
+			//debug output
+			//log.Println("No messages")
+
 			continue
 		}
+
 		log.Printf("Messages count %d, current time %s", len(out.Messages), time.Now())
 		for _, m := range out.Messages {
 			go ProcessMessage(&qcIn, &qcOut, m)

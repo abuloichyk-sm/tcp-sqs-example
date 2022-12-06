@@ -64,12 +64,13 @@ func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
 }
 
 func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
-	resBytes, err := base64.StdEncoding.DecodeString(*res.B64Message)
+	decodedBytes, err := base64.StdEncoding.DecodeString(*res.B64Message)
 	if err != nil {
-		log.Printf("Base 64 corrupted for message id '%s'. Base 64 value '%s', resBytes '%s',err  '%v'", *res.Id, *res.B64Message, resBytes, err)
+		log.Printf("Base 64 corrupted for message id '%s'. Base 64 value '%s', decoded '%s', error '%v'",
+			*res.Id, *res.B64Message, decodedBytes, err)
 		return
 	}
-	message := string(resBytes)
+	message := string(decodedBytes)
 
 	srAny, ok := sw.Requests.Load(*res.Id)
 	if !ok {

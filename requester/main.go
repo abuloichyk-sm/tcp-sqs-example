@@ -13,7 +13,7 @@ import (
 func main() {
 	wg := sync.WaitGroup{}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 1; i++ {
 		i := i
 		wg.Add(1)
 		go func() {
