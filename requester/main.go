@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -24,12 +26,16 @@ func main() {
 			//or request with time to pass duplication check in queue
 			//req := fmt.Sprintf("%d %d", i, time.Now().Unix())
 
+			start := time.Now()
 			// Отправляем в socket
 			fmt.Fprint(conn, req)
 			fmt.Printf("sent %d\n", i)
 
 			// Прослушиваем ответ
 			res, _ := bufio.NewReader(conn).ReadString('\n')
+
+			elapsed := time.Since(start)
+			log.Printf("Process %d took %s, %v | %v", i, elapsed, start, time.Now())
 			conn.Close()
 
 			fmt.Printf("Request: '%s', response: '%s'\n", req, res)

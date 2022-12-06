@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
@@ -42,7 +43,7 @@ func main() {
 			log.Println("No messages")
 			continue
 		}
-		log.Printf("Messages count %d", len(out.Messages))
+		log.Printf("Messages count %d, current time %s", len(out.Messages), time.Now())
 		for _, m := range out.Messages {
 			go ProcessMessage(&qcIn, &qcOut, m)
 		}
@@ -50,6 +51,8 @@ func main() {
 }
 
 func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueueClient, message *sqs.Message) {
+	//time measures
+	start := time.Now()
 
 	req := &queueclient.EngineRequest{}
 	err := json.Unmarshal([]byte(*message.Body), req)
@@ -74,6 +77,12 @@ func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueu
 	outMessage := string(outMessageBytes)
 
 	err = qcOut.SendMsg(&outMessage, req.Id)
+
+	//time measures
+	elapsed := time.Since(start)
+	requestNumber := strings.Split(*req.Id, "_")[0]
+	log.Printf("Request %s - %s", requestNumber, elapsed)
+
 	if err == nil {
 		qcIn.DeleteMessage(message.ReceiptHandle)
 	}

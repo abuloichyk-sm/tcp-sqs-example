@@ -4,7 +4,9 @@ import (
 	"encoding/base64"
 	"log"
 	"net"
+	"strings"
 	"sync"
+	"time"
 
 	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
 
@@ -15,9 +17,10 @@ type SendMessageToQueueFunc func(req *queueclient.EngineRequest)
 type SendToTcpConnFunc func(res *string, conn *net.Conn)
 
 type SwitcherRequest struct {
-	Id      *string
-	Message *string
-	Conn    *net.Conn
+	Id           *string
+	Message      *string
+	Conn         *net.Conn
+	ProcessStart time.Time
 }
 
 type Switcher struct {
@@ -32,11 +35,12 @@ func (sw *Switcher) Init(ts *TcpServer, ec *EngineClient) {
 }
 
 func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
-	id := uuid.New().String()
+	id := *m + "_" + uuid.New().String()
 	sr := SwitcherRequest{
-		Id:      &id,
-		Message: m,
-		Conn:    conn,
+		Id:           &id,
+		Message:      m,
+		Conn:         conn,
+		ProcessStart: time.Now(),
 	}
 
 	sw.Requests.Store(*sr.Id, sr)
@@ -65,6 +69,11 @@ func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
 	}
 
 	sr, _ := srAny.(SwitcherRequest)
+
+	//measures
+	elapsed := time.Since(sr.ProcessStart)
+	requestNumber := strings.Split(*sr.Id, "_")[0]
+	log.Printf("Request %s - %s", requestNumber, elapsed)
 
 	sw.ts.WriteResponse(&message, sr.Conn)
 }
