@@ -35,7 +35,7 @@ func main() {
 			res, _ := bufio.NewReader(conn).ReadString('\n')
 
 			elapsed := time.Since(start)
-			log.Printf("Process %d took %s, %v | %v", i, elapsed, start, time.Now())
+			log.Printf("Process %d took %s", i, elapsed)
 			conn.Close()
 
 			fmt.Printf("Request: '%s', response: '%s'\n", req, res)

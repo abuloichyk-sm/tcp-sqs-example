@@ -17,25 +17,25 @@ import (
 
 func main() {
 	sess := session.Must(session.NewSession(&aws.Config{
-		Credentials: credentials.NewSharedCredentials("", ""),
-		Region:      aws.String("us-east-1")},
+		Credentials: credentials.NewSharedCredentials("", "siliconmint"),
+		Region:      aws.String("eu-central-1")},
 	))
 
 	qcIn := queueclient.SqsQueueClient{}
-	err := qcIn.Init(sess, aws.String("AlexTestQueueEngineIn.fifo"), aws.Int64(1))
+	err := qcIn.Init(sess, aws.String("BuloichykEngineIn"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Engine in queue client created")
 
 	qcOut := queueclient.SqsQueueClient{}
-	err = qcOut.Init(sess, aws.String("AlexTestQueueEngineOut.fifo"), aws.Int64(1))
+	err = qcOut.Init(sess, aws.String("BuloichykEngineOut"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Engine out queue client created")
 
-	t := time.NewTicker(200 * time.Millisecond)
+	t := time.NewTicker(100 * time.Millisecond)
 	for {
 		<-t.C
 		out, _ := qcIn.ReceiveMessages()
@@ -47,7 +47,7 @@ func main() {
 			continue
 		}
 
-		log.Printf("Messages count %d, current time %s", len(out.Messages), time.Now())
+		log.Printf("Messages recived. Count %d", len(out.Messages))
 		for _, m := range out.Messages {
 			go ProcessMessage(&qcIn, &qcOut, m)
 		}
@@ -70,6 +70,9 @@ func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueu
 		return
 	}
 
+	//time measures
+	logTime(start, "JSON parsed", req.Id)
+
 	//processing
 	res := fmt.Sprintf("%s processed", transaction)
 	log.Printf("%s processed", transaction)
@@ -80,14 +83,21 @@ func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueu
 	outMessageBytes, _ := json.Marshal(engineRes)
 	outMessage := string(outMessageBytes)
 
+	//time measures
+	logTime(start, "Response message marshaled", req.Id)
+
 	err = qcOut.SendMsg(&outMessage, req.Id)
 
 	//time measures
-	elapsed := time.Since(start)
-	requestNumber := strings.Split(*req.Id, "_")[0]
-	log.Printf("Request %s - %s", requestNumber, elapsed)
+	logTime(start, "Total processing time", req.Id)
 
 	if err == nil {
 		qcIn.DeleteMessage(message.ReceiptHandle)
 	}
+}
+
+func logTime(start time.Time, m string, id *string) {
+	elapsed := time.Since(start)
+	requestNumber := strings.Split(*id, "_")[0]
+	log.Printf("Request '%s'. %s - %s", requestNumber, m, elapsed)
 }

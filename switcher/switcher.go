@@ -53,7 +53,7 @@ func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
 	}
 
 	sw.Requests.Store(*sr.Id, sr)
-	log.Printf("Stored for id %s", *sr.Id)
+	log.Printf("Stored in map with id '%s', message '%s'", *sr.Id, *m)
 
 	b64Message := base64.StdEncoding.EncodeToString([]byte(*m))
 	er := &queueclient.EngineRequest{
@@ -74,7 +74,7 @@ func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
 
 	srAny, ok := sw.Requests.Load(*res.Id)
 	if !ok {
-		log.Printf("Not found conn for Id '%s'. Message '%s'", *res.Id, message)
+		log.Printf("Not found in map conn for Id '%s'. Message '%s'", *res.Id, message)
 		return
 	}
 
@@ -83,7 +83,7 @@ func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
 	//measures
 	elapsed := time.Since(sr.ProcessStart)
 	requestNumber := strings.Split(*sr.Id, "_")[0]
-	log.Printf("Request %s - %s", requestNumber, elapsed)
+	log.Printf("Request '%s' total processing time - %s. Id '%s'", requestNumber, elapsed, *sr.Id)
 
 	sw.ts.WriteResponse(&message, sr.Conn)
 }

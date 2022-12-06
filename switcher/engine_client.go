@@ -20,27 +20,30 @@ type EngineClient struct {
 	handleEngineResponse HandleEngineResponseFunc
 }
 
-func (ec *EngineClient) Init(handleEngineResponse HandleEngineResponseFunc) {
+func NewEngineClient(handleEngineResponse HandleEngineResponseFunc) *EngineClient {
+	ec := &EngineClient{}
+
 	sess := session.Must(session.NewSession(&aws.Config{
-		Credentials: credentials.NewSharedCredentials("", ""),
-		Region:      aws.String("us-east-1")},
+		Credentials: credentials.NewSharedCredentials("", "siliconmint"),
+		Region:      aws.String("eu-central-1")},
 	))
 
 	ec.qcEngineIn = queueclient.SqsQueueClient{}
-	err := ec.qcEngineIn.Init(sess, aws.String("AlexTestQueueEngineIn.fifo"), aws.Int64(1))
+	err := ec.qcEngineIn.Init(sess, aws.String("BuloichykEngineIn"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Engine in queue client created")
 
 	ec.qcEngineOut = queueclient.SqsQueueClient{}
-	err = ec.qcEngineOut.Init(sess, aws.String("AlexTestQueueEngineOut.fifo"), aws.Int64(1))
+	err = ec.qcEngineOut.Init(sess, aws.String("BuloichykEngineOut"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Engine out queue client created")
 
 	ec.handleEngineResponse = handleEngineResponse
+	return ec
 }
 
 func (ec *EngineClient) Run() {
@@ -50,11 +53,15 @@ func (ec *EngineClient) Run() {
 		for {
 			<-t.C
 			out, _ := ec.qcEngineOut.ReceiveMessages()
+
 			if len(out.Messages) == 0 {
-				log.Println("No messages")
+				//debug output
+				//log.Println("No messages")
+
 				continue
 			}
-			log.Printf("Messages count %d", len(out.Messages))
+
+			log.Printf("Messages recived. Count %d", len(out.Messages))
 			for _, mo := range out.Messages {
 				go ec.processMessageFromEngine(mo)
 			}
