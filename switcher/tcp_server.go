@@ -13,8 +13,11 @@ type TcpServer struct {
 	handleReqFunc HandleTcpRequestFunc
 }
 
-func (ts *TcpServer) Init(handleReqFunc HandleTcpRequestFunc) {
+func NewTcpServer(handleReqFunc HandleTcpRequestFunc) *TcpServer {
+	ts := &TcpServer{}
+
 	ts.handleReqFunc = handleReqFunc
+	return ts
 }
 
 func (ts *TcpServer) Run() {

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
-
 	"github.com/google/uuid"
+
+	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
 )
 
 type SendMessageToQueueFunc func(req *queueclient.EngineRequest)
@@ -29,9 +29,18 @@ type Switcher struct {
 	ec       *EngineClient
 }
 
-func (sw *Switcher) Init(ts *TcpServer, ec *EngineClient) {
-	sw.ts = ts
-	sw.ec = ec
+func NewSwitcher() *Switcher {
+	sw := &Switcher{}
+
+	sw.ec = NewEngineClient(sw.HandleEngineResponse)
+	sw.ts = NewTcpServer(sw.HandleTcpRequest)
+
+	return sw
+}
+
+func (sw *Switcher) Run() {
+	sw.ec.Run()
+	sw.ts.Run()
 }
 
 func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
