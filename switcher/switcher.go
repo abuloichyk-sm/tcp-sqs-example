@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -9,11 +10,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
 )
 
-type SendMessageToQueueFunc func(req *queueclient.EngineRequest)
+type SendMessageToQueueFunc func(req *EngineRequest)
 type SendToTcpConnFunc func(res *string, conn *net.Conn)
 
 type SwitcherRequest struct {
@@ -29,11 +28,11 @@ type Switcher struct {
 	ec       *EngineClient
 }
 
-func NewSwitcher() *Switcher {
+func NewSwitcher(port int, readQueueIntervalMs int) *Switcher {
 	sw := &Switcher{}
 
-	sw.ec = NewEngineClient(sw.HandleEngineResponse)
-	sw.ts = NewTcpServer(sw.HandleTcpRequest)
+	sw.ec = NewEngineClient(sw.HandleEngineResponse, readQueueIntervalMs)
+	sw.ts = NewTcpServer(sw.HandleTcpRequest, port)
 
 	return sw
 }
@@ -56,14 +55,14 @@ func (sw *Switcher) HandleTcpRequest(m *string, conn *net.Conn) {
 	log.Printf("Stored in map with id '%s', message '%s'", *sr.Id, *m)
 
 	b64Message := base64.StdEncoding.EncodeToString([]byte(*m))
-	er := &queueclient.EngineRequest{
+	er := &EngineRequest{
 		Id:         sr.Id,
 		B64Message: &b64Message,
 	}
 	sw.ec.SendMessage(er)
 }
 
-func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
+func (sw *Switcher) HandleEngineResponse(res *EngineResponse) {
 	decodedBytes, err := base64.StdEncoding.DecodeString(*res.B64Message)
 	if err != nil {
 		log.Printf("Base 64 corrupted for message id '%s'. Base 64 value '%s', decoded '%s', error '%v'",
@@ -85,5 +84,7 @@ func (sw *Switcher) HandleEngineResponse(res *queueclient.EngineResponse) {
 	requestNumber := strings.Split(*sr.Id, "_")[0]
 	log.Printf("Request '%s' total processing time - %s. Id '%s'", requestNumber, elapsed, *sr.Id)
 
-	sw.ts.WriteResponse(&message, sr.Conn)
+	responseMessage := fmt.Sprintf("%s_total_%s", message, elapsed)
+
+	sw.ts.WriteResponse(&responseMessage, sr.Conn)
 }

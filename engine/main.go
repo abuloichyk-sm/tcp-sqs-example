@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	queueclient "github.com/abuloichyk-sm/tcp-sqs-example/internal/queueclient"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -21,14 +20,14 @@ func main() {
 		Region:      aws.String("eu-central-1")},
 	))
 
-	qcIn := queueclient.SqsQueueClient{}
+	qcIn := SqsQueueClient{}
 	err := qcIn.Init(sess, aws.String("BuloichykEngineIn"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Engine in queue client created")
 
-	qcOut := queueclient.SqsQueueClient{}
+	qcOut := SqsQueueClient{}
 	err = qcOut.Init(sess, aws.String("BuloichykEngineOut"), aws.Int64(1))
 	if err != nil {
 		log.Fatal(err)
@@ -54,11 +53,11 @@ func main() {
 	}
 }
 
-func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueueClient, message *sqs.Message) {
+func ProcessMessage(qcIn *SqsQueueClient, qcOut *SqsQueueClient, message *sqs.Message) {
 	//time measures
 	start := time.Now()
 
-	req := &queueclient.EngineRequest{}
+	req := &EngineRequest{}
 	err := json.Unmarshal([]byte(*message.Body), req)
 	if err != nil {
 		log.Printf("Error to json.Unmarshal '%s'", *message.Body)
@@ -66,7 +65,7 @@ func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueu
 	}
 	transaction, err := base64.StdEncoding.DecodeString(*req.B64Message)
 	if err != nil {
-		log.Printf("Error to base64 decode '%s'", req.B64Message)
+		log.Printf("Error to base64 decode '%s'", *req.B64Message)
 		return
 	}
 
@@ -78,7 +77,7 @@ func ProcessMessage(qcIn *queueclient.SqsQueueClient, qcOut *queueclient.SqsQueu
 	log.Printf("%s processed", transaction)
 
 	b64res := base64.StdEncoding.EncodeToString([]byte(res))
-	engineRes := queueclient.EngineResponse{Id: req.Id, B64Message: &b64res}
+	engineRes := EngineResponse{Id: req.Id, B64Message: &b64res}
 
 	outMessageBytes, _ := json.Marshal(engineRes)
 	outMessage := string(outMessageBytes)

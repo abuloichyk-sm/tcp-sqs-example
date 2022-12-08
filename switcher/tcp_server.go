@@ -11,23 +11,27 @@ type HandleTcpRequestFunc func(m *string, conn *net.Conn)
 
 type TcpServer struct {
 	handleReqFunc HandleTcpRequestFunc
+	port          int
 }
 
-func NewTcpServer(handleReqFunc HandleTcpRequestFunc) *TcpServer {
+func NewTcpServer(handleReqFunc HandleTcpRequestFunc, port int) *TcpServer {
 	ts := &TcpServer{}
 
 	ts.handleReqFunc = handleReqFunc
+	ts.port = port
 	return ts
 }
 
 func (ts *TcpServer) Run() {
 	fmt.Println("Launching server...")
 
-	port := 8081
-	listen, _ := net.Listen("tcp", ":"+fmt.Sprint(port))
+	listen, err := net.Listen("tcp", ":"+fmt.Sprint(ts.port))
+	if err != nil {
+		log.Printf("error %v", err)
+	}
 	defer listen.Close()
 
-	fmt.Println("Server launched on " + fmt.Sprint(port))
+	fmt.Println("Server launched on " + fmt.Sprint(ts.port))
 
 	for {
 		conn, err := listen.Accept()
