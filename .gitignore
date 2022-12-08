@@ -17,3 +17,6 @@
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/launch.json
+
+# AWS credentials file
+credentials

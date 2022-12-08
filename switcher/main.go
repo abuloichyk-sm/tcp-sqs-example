@@ -1,18 +1,16 @@
 package main
 
-import (
-	"sync"
-)
-
 func main() {
-	chans := &sync.Map{}
-	toProcess := make(chan (string), 1)
+	sw := NewSwitcher(80, 100)
 
-	ec := &EngineClient{}
-	ec.Init(chans, toProcess)
-	ec.Run()
-
-	ts := &TcpServer{}
-	ts.Init(chans, toProcess)
-	ts.Run()
+	sw.Run()
 }
+
+// hello world for test connection
+// func main() {
+// 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+// 		fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+// 	})
+
+// 	http.ListenAndServe(":8081", nil)
+// }

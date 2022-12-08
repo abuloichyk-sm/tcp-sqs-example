@@ -2,6 +2,7 @@ package queueclient
 
 import (
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -41,14 +42,20 @@ func (qc *SqsQueueClient) getQueueURL(sess *session.Session, queue *string) (*st
 }
 
 func (qc *SqsQueueClient) SendMsg(body *string, messageDeduplicationId *string) error {
-	svc := sqs.New(qc.Session)
+	//time measures
+	start := time.Now()
 
-	_, err := svc.SendMessage(&sqs.SendMessageInput{
-		MessageBody:            body,
-		MessageGroupId:         aws.String("EngineQueue"), //Messages in one group will be ordered as FIFO. Only one group this case
-		QueueUrl:               qc.QueueUrl,
-		MessageDeduplicationId: messageDeduplicationId,
+	_, err := qc.svc.SendMessage(&sqs.SendMessageInput{
+		MessageBody: body,
+		//MessageGroupId:         aws.String("EngineQueue"), //Messages in one group will be ordered as FIFO. Only one group this case
+		QueueUrl: qc.QueueUrl,
+		//MessageDeduplicationId: messageDeduplicationId,
 	})
+
+	//time measures
+	elapsed := time.Since(start)
+	log.Printf("Method send message in queue took %s", elapsed)
+
 	if err != nil {
 		log.Printf("Error on message sent body'%s' %d err %s", *body, len(*body), err)
 		return err

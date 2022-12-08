@@ -5,27 +5,33 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 )
 
+type HandleTcpRequestFunc func(m *string, conn *net.Conn)
+
 type TcpServer struct {
-	chans     *sync.Map
-	toProcess chan (string)
+	handleReqFunc HandleTcpRequestFunc
+	port          int
 }
 
-func (ts *TcpServer) Init(chans *sync.Map, toProcess chan (string)) {
-	ts.chans = chans
-	ts.toProcess = toProcess
+func NewTcpServer(handleReqFunc HandleTcpRequestFunc, port int) *TcpServer {
+	ts := &TcpServer{}
+
+	ts.handleReqFunc = handleReqFunc
+	ts.port = port
+	return ts
 }
 
 func (ts *TcpServer) Run() {
 	fmt.Println("Launching server...")
 
-	port := 8081
-	listen, _ := net.Listen("tcp", ":"+fmt.Sprint(port))
+	listen, err := net.Listen("tcp", ":"+fmt.Sprint(ts.port))
+	if err != nil {
+		log.Printf("error %v", err)
+	}
 	defer listen.Close()
 
-	fmt.Println("Server launched on " + fmt.Sprint(port))
+	fmt.Println("Server launched on " + fmt.Sprint(ts.port))
 
 	for {
 		conn, err := listen.Accept()
@@ -38,27 +44,12 @@ func (ts *TcpServer) Run() {
 }
 
 func (ts *TcpServer) handleIncomingRequest(conn net.Conn) {
-	defer conn.Close()
 	req := readMessage(conn)
 
 	//log
 	log.Printf("Received from tcp '%s'\n", *req)
 
-	//mock response
-	//res := fmt.Sprintf("%s processed", *req)
-
-	//send to engine
-	var c = make(chan (string), 1)
-	ts.chans.Store(*req, c)
-	ts.toProcess <- *req
-
-	//wait for response from engine
-	res := <-c
-	ts.chans.Delete(*req)
-	close(c)
-
-	writeResponse(conn, &res)
-	log.Printf("Sent to tcp '%s'\n", res)
+	ts.handleReqFunc(req, &conn)
 }
 
 func readMessage(conn net.Conn) *string {
@@ -71,6 +62,8 @@ func readMessage(conn net.Conn) *string {
 	return &res
 }
 
-func writeResponse(conn net.Conn, message *string) {
-	conn.Write([]byte(*message))
+func (ts *TcpServer) WriteResponse(res *string, conn *net.Conn) {
+	(*conn).Write([]byte(*res))
+	(*conn).Close()
+	log.Printf("Sent to tcp '%s'\n", *res)
 }
