@@ -1,6 +1,26 @@
 package main
 
+import (
+	"bytes"
+	"fmt"
+	"log"
+	"net/http"
+)
+
 func main() {
+
+	var b bytes.Buffer
+	log.SetOutput(&b)
+	log.SetFlags(log.Lmicroseconds)
+
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Hello! Logs from switcher: \n%s", b.String())
+		})
+
+		http.ListenAndServe(":8083", nil)
+	}()
+
 	sw := NewSwitcher(80, 100)
 
 	sw.Run()

@@ -50,19 +50,24 @@ func NewEngineClient(handleEngineResponse HandleEngineResponseFunc, readQueueInt
 func (ec *EngineClient) Run() {
 	//read answers from engine
 	go func() {
-		t := time.NewTicker(time.Duration(ec.readQueueIntervalMs) * time.Millisecond)
+		//t := time.NewTicker(time.Duration(ec.readQueueIntervalMs) * time.Millisecond)
 		for {
-			<-t.C
+			start := time.Now()
+			//read messages
 			out, _ := ec.qcEngineOut.ReceiveMessages()
+			elapsed := time.Since(start)
+
+			log.Printf("Messages received. Count %d. Received method execution time %s", len(out.Messages), elapsed)
 
 			if len(out.Messages) == 0 {
 				//debug output
 				//log.Println("No messages")
+				//<-t.C
 
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 
-			log.Printf("Messages recived. Count %d", len(out.Messages))
 			for _, mo := range out.Messages {
 				go ec.processMessageFromEngine(mo)
 			}

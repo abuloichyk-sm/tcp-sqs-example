@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,6 +17,21 @@ import (
 )
 
 func main() {
+
+	var logBuf bytes.Buffer
+	log.SetOutput(&logBuf)
+	log.SetFlags(log.Lmicroseconds)
+
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Hello! Logs from engine: \n%s", logBuf.String())
+		})
+
+		err := http.ListenAndServe(":8084", nil)
+		log.Printf("Http listen err: %v", err)
+		fmt.Println(logBuf.String())
+	}()
+
 	sess := session.Must(session.NewSession(&aws.Config{
 		Credentials: credentials.NewSharedCredentials("", "siliconmint"),
 		Region:      aws.String("eu-central-1")},
@@ -33,20 +50,20 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Engine out queue client created")
+	fmt.Print("Engine started")
 
-	t := time.NewTicker(100 * time.Millisecond)
 	for {
-		<-t.C
 		out, _ := qcIn.ReceiveMessages()
 
 		if len(out.Messages) == 0 {
 			//debug output
 			//log.Println("No messages")
+			time.Sleep(100 * time.Microsecond)
 
 			continue
 		}
 
-		log.Printf("Messages recived. Count %d", len(out.Messages))
+		log.Printf("Messages received. Count %d", len(out.Messages))
 		for _, m := range out.Messages {
 			go ProcessMessage(&qcIn, &qcOut, m)
 		}
@@ -70,11 +87,16 @@ func ProcessMessage(qcIn *SqsQueueClient, qcOut *SqsQueueClient, message *sqs.Me
 	}
 
 	//time measures
-	logTime(start, "JSON parsed", req.Id)
+	logTime(start, "Message received", req.Id)
 
 	//processing
 	res := fmt.Sprintf("%s processed", transaction)
-	log.Printf("%s processed", transaction)
+
+	//log
+	//log.Printf("%s processed", transaction)
+
+	// logged in message
+	res = fmt.Sprintf("%s| Engine received time %s|", res, start.Format(time.StampMilli))
 
 	b64res := base64.StdEncoding.EncodeToString([]byte(res))
 	engineRes := EngineResponse{Id: req.Id, B64Message: &b64res}
@@ -83,7 +105,7 @@ func ProcessMessage(qcIn *SqsQueueClient, qcOut *SqsQueueClient, message *sqs.Me
 	outMessage := string(outMessageBytes)
 
 	//time measures
-	logTime(start, "Response message marshaled", req.Id)
+	//logTime(start, "Response message marshaled", req.Id)
 
 	err = qcOut.SendMsg(&outMessage, req.Id)
 
