@@ -1,0 +1,13 @@
+# use for first run golang:latest. Then use image with installed go dependencies
+#FROM golang:latest
+FROM requester_base
+
+WORKDIR /go/src/github.com/abuloichyk-sm/tcp-sqs-example
+COPY go.mod ./
+COPY go.sum ./
+COPY requester ./requester
+WORKDIR /go/src/github.com/abuloichyk-sm/tcp-sqs-example/requester
+COPY credentials /root/.aws/credentials
+EXPOSE 8085
+RUN go build
+CMD ["go", "run", "."]

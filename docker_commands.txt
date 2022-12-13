@@ -1,19 +1,22 @@
 //build
-docker build -t switcher_test .
+docker build -t switcher_temp .
 
 //build
 docker build -f Dockerfile_engine -t engine_temp .
 
 //run
-docker run -it --rm -p 8081:8081 switcher_test
+docker run -it --rm -p 8081:8081 switcher_temp
+
+docker run -it --rm -p 8085:8085 requester_temp
+
 
 //run with limited resources
-docker run -it --rm -p 8081:8081 -m 128m --cpu-period=100000 --cpu-quota=10000 switcher_test
+docker run -it --rm -p 8081:8081 -m 128m --cpu-period=100000 --cpu-quota=10000 switcher_temp
 
 //remove all images with <none> as name
 docker image prune --filter="dangling=true"
 
-docker image tag switcher_test:latest 047645651418.dkr.ecr.eu-central-1.amazonaws.com/pharma_co_poc_buloichyk
+docker image tag switcher_temp:latest 047645651418.dkr.ecr.eu-central-1.amazonaws.com/pharma_co_poc_buloichyk
 docker image push 047645651418.dkr.ecr.eu-central-1.amazonaws.com/pharma_co_poc_buloichyk
 
 //login in docker
