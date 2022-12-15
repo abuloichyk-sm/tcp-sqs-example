@@ -1,0 +1,14 @@
+{
+    "Records": [
+        {
+            "messageId": "059f36b4-87a3-44ab-83d2-661975830a7d",
+            "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+            "body": "{\"Id\":\"2_1671015138_22d95cee-b103-4c28-a647-b1cf2939cfc7\",\"B64Message\":\"Ml8xNjcxMDE1MTM4\"}"
+        },
+        {
+            "messageId": "2e1424d4-f796-459a-8184-9c92662be6da",
+            "receiptHandle": "AQEBzWwaftRI0KuVm4tP+/7q1rGgNqicHq...",
+            "body": "{\"Id\":\"10_1671015265_ce70b82d-cdab-44f6-ace1-2efd6ebef20a\",\"B64Message\":\"MTBfMTY3MTAxNTI2NQ==\"}"
+        }
+    ]
+}

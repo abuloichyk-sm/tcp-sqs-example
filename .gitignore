@@ -20,3 +20,6 @@
 
 # AWS credentials file
 credentials
+
+*/.aws-sam/*
+/lambda_engine/build/*

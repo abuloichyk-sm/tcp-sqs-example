@@ -16,8 +16,8 @@ func main() {
 	// fmt.Println(time)
 	wg := sync.WaitGroup{}
 
-	messagesInSecond := 40
-	intervalSeconds := 60
+	messagesInSecond := 10
+	intervalSeconds := 1
 
 	bulkSize := int(float64(messagesInSecond) / float64(10))
 	iterationsCount := intervalSeconds * 10
@@ -36,8 +36,8 @@ func main() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				//conn, _ := net.Dial("tcp", "127.0.0.1:80")
-				conn, _ := net.Dial("tcp", "3.64.255.146:8082")
+				conn, _ := net.Dial("tcp", "127.0.0.1:80")
+				//conn, _ := net.Dial("tcp", "3.64.255.146:8082")
 
 				//request just number
 				req := fmt.Sprintf("%d_%v", index, time.Now().Unix())

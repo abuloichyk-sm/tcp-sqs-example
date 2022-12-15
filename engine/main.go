@@ -74,6 +74,8 @@ func ProcessMessage(qcIn *SqsQueueClient, qcOut *SqsQueueClient, message *sqs.Me
 	//time measures
 	start := time.Now()
 
+	log.Printf("message body '%s'", *message.Body)
+
 	req := &EngineRequest{}
 	err := json.Unmarshal([]byte(*message.Body), req)
 	if err != nil {
